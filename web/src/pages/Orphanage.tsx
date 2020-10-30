@@ -1,71 +1,77 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Map, Marker, TileLayer } from "react-leaflet";
-import { FiClock } from "react-icons/fi";
+import { FiClock, FiInfo } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
-import mapIcon from "../utils/mapIcon"
+import mapIcon from "../utils/mapIcon";
+import api from "../services/api";
 import "../styles/pages/orphanage.css";
 
+interface Orphanage {
+  latitude: number;
+  longitude: number;
+  name: string;
+  about: string;
+  instructions: string;
+  opening_hours: string;
+  open_on_weekends: string;
+  images: Array<{
+    id: number;
+    url: string;
+  }>;
+}
+
+interface OrphanageParams {
+  id: string;
+}
+
 function Orphanage() {
+  const params = useParams<OrphanageParams>();
+  const [orphanage, setOrphanage] = useState<Orphanage>();
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    api.get(`orphanages/${params.id}`).then((response) => {
+      setOrphanage(response.data);
+    });
+  }, [params.id]);
+
+  if (!orphanage) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <div id="page-orphanage">
       <Sidebar />
       <main>
         <div className="orphanage-details">
           <img
-            src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-            alt="Boston Orphanage"
+            src={orphanage.images[activeImageIndex].url}
+            alt={orphanage.name}
           />
           <div className="images">
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
-            <button className="active" type="button">
-              <img
-                src="https://adoption.com/wp-content/uploads/2019/02/Orphanages-in-the-US-624x416.jpg"
-                alt="Boston Orphanage"
-              />
-            </button>
+            {orphanage.images.map((image, index) => {
+              return (
+                <button
+                  key={image.id}
+                  className={activeImageIndex == index ? "active" : ""}
+                  type="button"
+                  onClick={() => {
+                    setActiveImageIndex(index);
+                  }}
+                >
+                  <img src={image.url} alt={orphanage.name} />
+                </button>
+              );
+            })}
           </div>
           <div className="orphanage-details-content">
-            <h1>Boston Orphanage</h1>
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est ex
-              ad minus, eos rem eum ullam excepturi quam aliquam nemo ipsa.
-              Dolorem blanditiis nulla soluta ut aliquid voluptatum perspiciatis
-              iusto.
-            </p>
+            <h1>{orphanage.name}</h1>
+            <p>{orphanage.about}</p>
             <div className="map-container">
               <Map
-                center={[42.3555957, -71.0779056]}
+                center={[orphanage.latitude, orphanage.longitude]}
                 zoom={16}
                 style={{ width: "100%", height: 280 }}
                 dragging={false}
@@ -80,32 +86,46 @@ function Orphanage() {
                 <Marker
                   interactive={false}
                   icon={mapIcon}
-                  position={[42.3555957, -71.0779056]}
+                  position={[orphanage.latitude, orphanage.longitude]}
                 />
               </Map>
               <footer>
-                <Link to="#">Get directions on Google Maps</Link>
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${orphanage.latitude},${orphanage.longitude}`}
+                >
+                  Get directions on Google Maps
+                </a>
               </footer>
             </div>
             <hr />
             <h2>Visitor Hours / Guidelines</h2>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quia
-              repellat repellendus accusantium id, provident sit maiores commodi
-              minus eaque autem numquam eveniet fugit consequatur aspernatur
-              dolorum est iure possimus officiis.
-            </p>
+            <p>{orphanage.instructions}</p>
             <div className="open-details">
               <div className="hour">
                 <FiClock size={32} color="#15b6d6" />
                 Mon to Fri <br />
-                8am to 6pm
+                {orphanage.opening_hours}
               </div>
+              {orphanage.open_on_weekends ? (
+                <div className="open-on-weekends">
+                  <FiInfo size={32} color="#39cc83" />
+                  Open <br />
+                  On Weekends
+                </div>
+              ) : (
+                <div className="open-on-weekends dont-open">
+                  <FiInfo size={32} color="#ff669d" />
+                  Do Not Open <br />
+                  On Weekends
+                </div>
+              )}
             </div>
-            <button className="contact-button" type="button">
+            {/* <button className="contact-button" type="button">
               <FaWhatsapp size={20} color="#fff" />
               Contact
-            </button>
+            </button> */}
           </div>
         </div>
       </main>
